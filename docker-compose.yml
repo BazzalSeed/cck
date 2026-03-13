@@ -11,7 +11,7 @@ services:
       - pgdata:/var/lib/postgresql/data
 
   webapp:
-    build: ./webapp
+    build: .
     ports:
       - "3000:3000"
     environment:
