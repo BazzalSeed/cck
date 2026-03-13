@@ -1,0 +1,9 @@
+node_modules
+.next
+__pycache__
+*.pyc
+.DS_Store
+cck.db
+gp_no_passwords.xlsx
+*.csv
+.env*.local
