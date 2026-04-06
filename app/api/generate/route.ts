@@ -5,7 +5,7 @@ import puppeteer from "puppeteer-core";
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { category, product_code, part_name, material, ticket_number, factory_number, notes } = body;
+  const { category, product_code, part_name, material, ticket_number, factory_number, notes, signer, signer_date, material_checker, material_checker_date, quota, planned_quantity } = body;
 
   if (!category || !product_code || !part_name || !material) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -26,6 +26,12 @@ export async function POST(request: Request) {
     ticketNumber: ticket_number || "",
     factoryNumber: factory_number || "",
     notes: notes || "",
+    signer: signer || "",
+    signerDate: signer_date || "",
+    materialChecker: material_checker || "",
+    materialCheckerDate: material_checker_date || "",
+    quota: quota || "",
+    plannedQuantity: planned_quantity || "",
   });
 
   const browser = await puppeteer.launch({
@@ -34,7 +40,7 @@ export async function POST(request: Request) {
     args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu"],
   });
   const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: "networkidle0" });
+  await page.setContent(html, { waitUntil: "domcontentloaded" });
 
   const element = await page.$("#ticket");
   let imageBase64 = "";

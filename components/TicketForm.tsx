@@ -7,6 +7,16 @@ interface TicketFormProps {
   onGenerate: (result: { image: string; html: string }) => void;
 }
 
+function getTodayStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function getDefaultTicketNumber(): string {
+  const d = new Date();
+  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export default function TicketForm({ onGenerate }: TicketFormProps) {
   const { toast } = useToast();
   const [categories, setCategories] = useState<string[]>([]);
@@ -18,9 +28,15 @@ export default function TicketForm({ onGenerate }: TicketFormProps) {
   const [productCode, setProductCode] = useState("");
   const [partName, setPartName] = useState("");
   const [material, setMaterial] = useState("");
-  const [ticketNumber, setTicketNumber] = useState("");
+  const [ticketNumber, setTicketNumber] = useState(getDefaultTicketNumber);
   const [factoryNumber, setFactoryNumber] = useState("");
   const [notes, setNotes] = useState("");
+  const [signer, setSigner] = useState("曾惠琼");
+  const [signerDate, setSignerDate] = useState(getTodayStr);
+  const [materialChecker, setMaterialChecker] = useState("彭永佳");
+  const [materialCheckerDate, setMaterialCheckerDate] = useState(getTodayStr);
+  const [quota, setQuota] = useState("");
+  const [plannedQuantity, setPlannedQuantity] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingOptions, setLoadingOptions] = useState(false);
 
@@ -90,6 +106,12 @@ export default function TicketForm({ onGenerate }: TicketFormProps) {
           ticket_number: ticketNumber,
           factory_number: factoryNumber,
           notes,
+          signer,
+          signer_date: signerDate,
+          material_checker: materialChecker,
+          material_checker_date: materialCheckerDate,
+          quota,
+          planned_quantity: plannedQuantity,
         }),
       });
       const data = await res.json();
@@ -110,9 +132,15 @@ export default function TicketForm({ onGenerate }: TicketFormProps) {
     setProductCode("");
     setPartName("");
     setMaterial("");
-    setTicketNumber("");
+    setTicketNumber(getDefaultTicketNumber());
     setFactoryNumber("");
     setNotes("");
+    setSigner("曾惠琼");
+    setSignerDate(getTodayStr());
+    setMaterialChecker("彭永佳");
+    setMaterialCheckerDate(getTodayStr());
+    setQuota("");
+    setPlannedQuantity("");
     setProducts([]);
     setParts([]);
     setMaterials([]);
@@ -196,6 +224,29 @@ export default function TicketForm({ onGenerate }: TicketFormProps) {
         </select>
       </div>
 
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm font-medium mb-1">定额</label>
+          <input
+            className={inputClass}
+            type="text"
+            value={quota}
+            onChange={(e) => setQuota(e.target.value)}
+            placeholder="输入定额"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">计划量</label>
+          <input
+            className={inputClass}
+            type="text"
+            value={plannedQuantity}
+            onChange={(e) => setPlannedQuantity(e.target.value)}
+            placeholder="输入计划量"
+          />
+        </div>
+      </div>
+
       <div>
         <label className="block text-sm font-medium mb-1">编号</label>
         <input
@@ -216,6 +267,48 @@ export default function TicketForm({ onGenerate }: TicketFormProps) {
           onChange={(e) => setFactoryNumber(e.target.value)}
           placeholder="输入出厂编号"
         />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm font-medium mb-1">签票人</label>
+          <input
+            className={inputClass}
+            type="text"
+            value={signer}
+            onChange={(e) => setSigner(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">签票日期</label>
+          <input
+            className={inputClass}
+            type="date"
+            value={signerDate}
+            onChange={(e) => setSignerDate(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm font-medium mb-1">核料人</label>
+          <input
+            className={inputClass}
+            type="text"
+            value={materialChecker}
+            onChange={(e) => setMaterialChecker(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">核料日期</label>
+          <input
+            className={inputClass}
+            type="date"
+            value={materialCheckerDate}
+            onChange={(e) => setMaterialCheckerDate(e.target.value)}
+          />
+        </div>
       </div>
 
       <div>

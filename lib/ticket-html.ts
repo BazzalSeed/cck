@@ -6,6 +6,12 @@ export interface TicketData {
   ticketNumber: string;
   factoryNumber: string;
   notes: string;
+  signer: string;
+  signerDate: string;
+  materialChecker: string;
+  materialCheckerDate: string;
+  quota: string;
+  plannedQuantity: string;
 }
 
 export function renderTicketHtml(data: TicketData): string {
@@ -69,10 +75,10 @@ export function renderTicketHtml(data: TicketData): string {
   </tr>
   <tr>
     <td></td>
-    <td></td>
+    <td>${escapeHtml(data.plannedQuantity)}</td>
     <td></td>
     <td>${escapeHtml(data.material)}</td>
-    <td></td>
+    <td>${escapeHtml(data.quota)}</td>
   </tr>
   <tr>
     <td>检验结果</td>
@@ -84,8 +90,8 @@ export function renderTicketHtml(data: TicketData): string {
     <td>零件库点收</td>
     <td></td>
     <td>领料人</td>
-    <td>核料人</td>
-    <td>签票者</td>
+    <td>核料人: ${escapeHtml(data.materialChecker)}<br><small>${escapeHtml(data.materialCheckerDate)}</small></td>
+    <td>签票者: ${escapeHtml(data.signer)}<br><small>${escapeHtml(data.signerDate)}</small></td>
   </tr>
   <tr style="background:#f0f0f0;">
     <th>工序</th>

@@ -33,4 +33,3 @@ __pycache__
 # project data files
 cck.db
 gp_no_passwords.xlsx
-*.csv

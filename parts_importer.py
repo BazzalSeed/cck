@@ -1,20 +1,17 @@
 #!/usr/bin/env python3
-"""Import parts data from work-ticket Excel sheets into PostgreSQL.
+"""Parse work-ticket Excel sheets and export to CSV.
 
 Parses legacy hand-written work tickets to extract parts mapping
 (category, product_code, part_name, material, processes).
 Deduplicates by (category, product_code, part_name, material), keeping the longest process list.
 
-Requires DATABASE_URL env var (e.g. postgresql://cck:cck@localhost:5432/cck).
+Output: data/work_tickets.csv
 """
 
 import argparse
-import os
 import openpyxl
 import pandas as pd
-import psycopg2
 import re
-import sys
 import time
 from typing import Dict, List, Optional, Tuple
 
@@ -29,41 +26,6 @@ class WorkTicketParser:
             return None
         cleaned = raw.replace('"', '').replace('\u201c', '').replace('\u201d', '').strip()
         return re.sub(r'\s+', ' ', cleaned)
-
-    def populate_db(self, dfs):
-        """Write parsed data into PostgreSQL database"""
-        database_url = os.environ.get('DATABASE_URL')
-        if not database_url:
-            print("ERROR: DATABASE_URL env var is required", file=sys.stderr)
-            sys.exit(1)
-
-        conn = psycopg2.connect(database_url)
-        cur = conn.cursor()
-        cur.execute('DROP TABLE IF EXISTS work_tickets')
-        cur.execute('''CREATE TABLE work_tickets (
-            id SERIAL PRIMARY KEY,
-            category TEXT NOT NULL,
-            product_code TEXT NOT NULL,
-            part_name TEXT,
-            material TEXT,
-            processes TEXT,
-            process_count INTEGER DEFAULT 0
-        )''')
-        cur.execute('CREATE INDEX idx_wt_category ON work_tickets(category)')
-        cur.execute('CREATE INDEX idx_wt_product_code ON work_tickets(product_code)')
-        for df in dfs:
-            for _, row in df.iterrows():
-                cur.execute(
-                    'INSERT INTO work_tickets (category, product_code, part_name, material, processes, process_count) VALUES (%s, %s, %s, %s, %s, %s)',
-                    (row['category'], row['product_code'], row['part_name'],
-                     row['material'], row['processes'], row['process_count'])
-                )
-        conn.commit()
-        cur.execute('SELECT COUNT(*) FROM work_tickets')
-        total = cur.fetchone()[0]
-        cur.close()
-        conn.close()
-        print(f"\nPopulated PostgreSQL with {total} records")
 
     def parse_product_code_range(self, code_string: str) -> List[Tuple[str, str]]:
         """Parse product codes and extract both code and part name"""
@@ -264,21 +226,21 @@ class WorkTicketParser:
 
         return df
 
-    def parse_all_sheets(self, sheet_numbers: List[int] = None):
+    def parse_all_sheets(self, sheet_numbers: List[int] = None) -> List[pd.DataFrame]:
         """Parse specified sheets"""
         categories = {
-            "1": "冷箱阀DL",
-            "2": "冷箱阀TJ",
-            "3": "冷箱阀TC",
-            "4": "冷箱阀TD",
-            "5": "冷箱阀TN",
-            "6": "冷箱阀TE",
-            "7": "冷箱阀TG",
-            "8": "冷箱阀TF",
-            "9": "冷箱阀TH",
-            "10": "冷箱阀TI",
-            "11": "冷箱阀TK",
-            "12": "冷箱阀TL"
+            "1": "冷箱阀DL系列",
+            "2": "球阀DQ系列",
+            "3": "TDL、气瓶系列",
+            "4": "截止阀DA、DJ系列",
+            "5": "紧急切断阀",
+            "6": "蝶阀DD系列",
+            "7": "C9阀门系列",
+            "8": "安全阀系列",
+            "9": "其它阀门系列",
+            "10": "调节/闸阀/切断",
+            "11": "止回阀",
+            "12": "试验、取证等"
         }
 
         if sheet_numbers:
@@ -298,42 +260,42 @@ class WorkTicketParser:
 
 
 def main():
-    arg_parser = argparse.ArgumentParser(description='Import parts data from work-ticket Excel sheets into PostgreSQL')
+    arg_parser = argparse.ArgumentParser(description='Parse work-ticket Excel sheets to CSV')
     arg_parser.add_argument('--file', type=str, default='gp_no_passwords.xlsx',
                             help='Excel file to parse (default: gp_no_passwords.xlsx)')
     arg_parser.add_argument('--sheet', type=int, choices=range(1, 13), metavar='N',
                             help='Sheet number (1-12). Omit to parse all sheets.')
-    arg_parser.add_argument('--populate-db', action='store_true',
-                            help='Write parsed data into PostgreSQL (requires DATABASE_URL)')
     args = arg_parser.parse_args()
 
     sheet_numbers = [args.sheet] if args.sheet else None
     if args.sheet:
-        print(f"Testing with sheet {args.sheet} only")
+        print(f"Parsing sheet {args.sheet} only")
     else:
         print("Parsing all 12 sheets")
 
     start_time = time.time()
     parser = WorkTicketParser(args.file)
-
     dfs = parser.parse_all_sheets(sheet_numbers)
 
-    if args.populate_db:
-        parser.populate_db(dfs)
+    combined = pd.concat(dfs, ignore_index=True)
+
+    import os
+    os.makedirs('data', exist_ok=True)
+    output_path = 'data/work_tickets.csv'
+    combined.to_csv(output_path, index=False)
 
     print(f"\n{'='*60}")
-    print("FINAL SUMMARY")
+    print("SUMMARY")
     print('='*60)
-
-    total_records = sum(len(df) for df in dfs)
-    print(f"Total records extracted: {total_records}")
+    print(f"Total records: {len(combined)}")
+    print(f"Output: {output_path}")
     print(f"Total time: {time.time() - start_time:.1f} seconds")
 
     for df in dfs:
         if not df.empty:
             category = df['category'].iloc[0]
             print(f"\n{category}:")
-            print(f"  Total records: {len(df)}")
+            print(f"  Records: {len(df)}")
             print(f"  Unique products: {df['product_code'].nunique()}")
 
             wrong_mat = df[df['material'] == '定额']
